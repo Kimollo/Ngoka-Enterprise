@@ -1,0 +1,50 @@
+{
+  "notice": "Prices can increase or decrease. Ask us to confirm today's price before you pay.",
+  "updatedAt": "2026-10-22T15:54:48.241Z",
+  "products": [
+    {
+      "id": "eggs-crate",
+      "category": "Fresh Eggs",
+      "name": "Eggs",
+      "price": 130,
+      "currency": "R",
+      "unit": "per crate",
+      "inStock": true,
+      "visible": true,
+      "note": ""
+    },
+    {
+      "id": "eggs-reseller",
+      "category": "Fresh Eggs",
+      "name": "Eggs, 10 crates or more",
+      "price": 110,
+      "currency": "R",
+      "unit": "per crate",
+      "inStock": true,
+      "visible": true,
+      "note": ""
+    },
+    {
+      "id": "layers",
+      "category": "Poultry",
+      "name": "Layers",
+      "price": null,
+      "currency": "R",
+      "unit": "per chicken",
+      "inStock": false,
+      "visible": true,
+      "note": ""
+    },
+    {
+      "id": "broilers",
+      "category": "Poultry",
+      "name": "Broilers",
+      "price": null,
+      "currency": "R",
+      "unit": "per chicken",
+      "inStock": false,
+      "visible": true,
+      "note": ""
+    }
+  ]
+}
