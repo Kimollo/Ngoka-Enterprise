@@ -1,15 +1,20 @@
 import { readFile, writeFile } from "fs/promises";
 import path from "path";
-import { Redis } from "@upstash/redis";
+import { getStore, type Store } from "@netlify/blobs";
 import type { Catalog, Product, ProductUpdate } from "@/lib/types";
 import seedCatalog from "@/data/catalog.json";
 
 const catalogPath = path.join(process.cwd(), "data", "catalog.json");
-const redisKey = "ngoka:catalog";
+const blobKey = "catalog";
 
-const redisUrl = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
-const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
+function blobStore(): Store | null {
+  try {
+    return getStore({ name: "ngoka", consistency: "strong" });
+  } catch (error) {
+    if (error instanceof Error && error.name === "MissingBlobsEnvironmentError") return null;
+    throw error;
+  }
+}
 
 function isProduct(value: unknown): value is Product {
   if (!value || typeof value !== "object") return false;
@@ -45,14 +50,12 @@ async function readCatalogFile(): Promise<Catalog> {
 }
 
 export async function getCatalog(): Promise<Catalog> {
-  if (!redis) return readCatalogFile();
+  const store = blobStore();
+  if (!store) return readCatalogFile();
 
-  const stored = await redis.get<Catalog>(redisKey);
+  const stored: unknown = await store.get(blobKey, { type: "json" });
   if (stored) return toCatalog(stored, "The saved price list");
-
-  const seed = toCatalog(seedCatalog, "data/catalog.json");
-  await redis.set(redisKey, seed, { nx: true });
-  return seed;
+  return toCatalog(seedCatalog, "data/catalog.json");
 }
 
 export async function updateCatalog(notice: string, updates: ProductUpdate[]) {
@@ -77,8 +80,9 @@ export async function updateCatalog(notice: string, updates: ProductUpdate[]) {
     products,
   };
 
-  if (redis) {
-    await redis.set(redisKey, next);
+  const store = blobStore();
+  if (store) {
+    await store.setJSON(blobKey, next);
   } else {
     await writeFile(catalogPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
   }
