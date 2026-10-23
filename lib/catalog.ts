@@ -9,10 +9,21 @@ const blobKey = "catalog";
 
 function blobStore(): Store | null {
   try {
-    return getStore({ name: "ngoka", consistency: "strong" });
+    return getStore({
+      name: "ngoka",
+      fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(8000) }),
+    });
   } catch (error) {
     if (error instanceof Error && error.name === "MissingBlobsEnvironmentError") return null;
     throw error;
+  }
+}
+
+async function fallbackCatalog(): Promise<Catalog> {
+  try {
+    return await readCatalogFile();
+  } catch {
+    return toCatalog(seedCatalog, "data/catalog.json");
   }
 }
 
@@ -51,11 +62,15 @@ async function readCatalogFile(): Promise<Catalog> {
 
 export async function getCatalog(): Promise<Catalog> {
   const store = blobStore();
-  if (!store) return readCatalogFile();
+  if (!store) return fallbackCatalog();
 
-  const stored: unknown = await store.get(blobKey, { type: "json" });
-  if (stored) return toCatalog(stored, "The saved price list");
-  return toCatalog(seedCatalog, "data/catalog.json");
+  try {
+    const stored: unknown = await store.get(blobKey, { type: "json" });
+    if (stored) return toCatalog(stored, "The saved price list");
+    return toCatalog(seedCatalog, "data/catalog.json");
+  } catch {
+    return fallbackCatalog();
+  }
 }
 
 export async function updateCatalog(notice: string, updates: ProductUpdate[]) {
